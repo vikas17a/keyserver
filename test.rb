@@ -21,6 +21,7 @@ RSpec.describe "Individual functions of Api" do
     @schedule = Schedule.new(@api)
     @api.time_reset(10,2)
     @schedule.reset_scheduler('5s','1s')
+    @schedule.start_scheduler
   end
 
   it "start generating keys for api server" do
@@ -36,24 +37,35 @@ RSpec.describe "Individual functions of Api" do
   end
 
   it "check if unblock background works" do
-    sleep(12)
+    @api.key_status.each do |key, value|
+      @api.delete_key!(key)
+    end
+    40.times do
+      @api.gen_key
+      @api.allot_key
+    end
+    sleep(3)
     expect(@api.available_keys.length).to be >= 30
   end
 
   it "check if keep alive key works" do
+    @api.key_status.each do |key, value|
+      @api.delete_key!(key)
+    end
     20.times do
       @api.gen_key
     end
+    sleep(3)
     @api.key_status.each do |key,value|
       @api.keep_alive(key)
     end
-    @api.purge_key
+    sleep(2)
     expect(@api.key_status.length).to be >= 20
   end
 
   it "check if delete background works" do
     @api.key_status.each do |key, value|
-      @api.delete_key(key)
+      @api.delete_key!(key)
     end
     10.times do
       @api.gen_key
@@ -64,7 +76,7 @@ RSpec.describe "Individual functions of Api" do
 
   it "check if allocate key blocks the key or not" do
     @api.key_status.each do |key, value|
-      @api.delete_key(key)
+      @api.delete_key!(key)
     end
     20.times do
       @api.gen_key
@@ -76,7 +88,7 @@ RSpec.describe "Individual functions of Api" do
 
   it "check if unblock end point works" do
     @api.key_status.each do |key, value|
-      @api.delete_key(key)
+      @api.delete_key!(key)
     end
     20.times do
       @api.gen_key
@@ -100,75 +112,75 @@ RSpec.describe "Functioning part" do
   it "check if background key delete's on time for(unblocked keys)" do
     @api.time_reset(10,200)
     @schedule.reset_scheduler('1s','200s')
-    @schedule.start
+    @schedule.start_scheduler
     20.times do
       @api.gen_key
     end
     sleep(20)
     expect(@api.key_status.length).to eq 0
-    @schedule.shut_down
+    @schedule.shut_down_scheduler
   end
 
   it "check if background key delete's on time for(blocked keys)" do
     @api.time_reset(2,200)
     @schedule.reset_scheduler('1s','200s')
-    @schedule.start
+    @schedule.start_scheduler
     10.times do
       @api.gen_key
       @api.allot_key
     end
     sleep(20)
     expect(@api.key_status.length).to eq 0
-    @schedule.shut_down
+    @schedule.shut_down_scheduler
   end
 
   it "check if blocked key got unblocked delete first if delete time is smaller than unblock" do
     @api.time_reset(1,5)
     @schedule.reset_scheduler('1s','1s')
-    @schedule.start
+    @schedule.start_scheduler
     10.times do
       @api.gen_key
       @api.allot_key
     end
     sleep(10)
     expect(@api.available_keys.length).to eq 0
-    @schedule.shut_down
+    @schedule.shut_down_scheduler
   end
 
   it "check when all keys are deleted then any key allocats or not", :runme => true do 
     @api.time_reset(10,5)
     @schedule.reset_scheduler('1s','200s')
-    @schedule.start
+    @schedule.start_scheduler
     5.times do
       @api.gen_key
     end
     sleep(15)
     expect{@api.allot_key}.to raise_error(RuntimeError, "404")
-    @schedule.shut_down
+    @schedule.shut_down_scheduler
   end
 
   it "check if deleted key unblocks" do
     del_key = []
     @api.time_reset(40,40)
     @schedule.reset_scheduler('200s','200s')
-    @schedule.start
+    @schedule.start_scheduler
     10.times do
       @api.gen_key
     end
     @api.available_keys.each do |key, value|
-      @api.delete_key(key)
+      @api.delete_key!(key)
       del_key.push(key)
     end
     del_key.each do |val|
       expect(@api.release_key(val)).to eq "Invalid Key"
     end
-    @schedule.shut_down
+    @schedule.shut_down_scheduler
   end
 
   it "check if unblocks endpoint unblocks an already unblocked key" do
     @api.time_reset(30,2)
     @schedule.reset_scheduler(40,1)
-    @schedule.start
+    @schedule.start_scheduler
     10.times do
       @api.gen_key
     end
@@ -176,12 +188,12 @@ RSpec.describe "Functioning part" do
     @api.available_keys.each do |key, value|
       expect(@api.release_key(key)).to eq "Already released"
     end
-    @schedule.shut_down
+    @schedule.shut_down_scheduler
   end
 
   it "check if any absurd key is entered for deletion" do
     @api.time_reset(100,100)
     @schedule.reset_scheduler('50s', '50s')
-    expect(@api.delete_key('randomizedkey')).to eq "{Invalid Key}"
+    expect(@api.delete_key!('randomizedkey')).to eq "Invalid Key"
   end
 end

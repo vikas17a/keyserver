@@ -3,15 +3,15 @@ require './keyserver.rb'
 
 api = Api.new
 scheduler = Schedule.new(api)
-scheduler.start
+scheduler.start_scheduler
 
 get '/gen_key' do
 	begin 
 		api.gen_key
 	rescue
-		"{Error}"
+		"Error in generating key"
 	end
-	"{OK}"
+	"Ok"
 end
 
 get '/allocate' do
@@ -20,22 +20,22 @@ get '/allocate' do
 	rescue
 		status 404
 	end
-	"{#{res}}"
+	"#{res}"
 end
 
 get '/release_key/?:key' do
 	begin
 		api.release_key(params['key'])
 	rescue
-		"{Error}"
+		"Error in releasing key"
 	end
 end
 
 get '/delete_key/?:key' do
 	begin
-		api.delete_key(params['key'])
+		api.delete_key!(params['key'])
 	rescue
-		"{Error}"
+		"Error in deleting key"
 	end
 end
 
@@ -43,6 +43,6 @@ get '/keep_key/?:key' do
 	begin
 		api.keep_alive(params['key'])
 	rescue
-		"{Error}"
+		"Error in keep alive key"
 	end
 end

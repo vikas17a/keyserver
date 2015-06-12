@@ -16,9 +16,9 @@ describe "My Sinatra Application" do
   	expect(last_response.status).to eq 404
   end
 
-  it "should give invalid key on deleting an deletable key" do
+  it "should give invalid key on deleting an absurd key" do
   	get '/delete_key/aresegaerASFA231'
-  	expect(last_response.body).to eq '{Invalid Key}'
+  	expect(last_response.body).to eq 'Invalid Key'
   end
 
   it "should give 404 on any other url" do
